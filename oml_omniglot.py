@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
+import wandb
 
 import datasets.datasetfactory as df
 import datasets.task_sampler as ts
@@ -13,34 +13,27 @@ import utils.utils as utils
 from experiment.experiment import experiment
 from model.meta_learner import MetaLearingClassification
 
-logger = logging.getLogger('experiment')
-
-
 def main():
     p = class_parser.Parser()
-    total_seeds = len(p.parse_known_args()[0].seed)
     rank = p.parse_known_args()[0].rank
     all_args = vars(p.parse_known_args()[0])
     print("All args = ", all_args)
 
     args = utils.get_run(vars(p.parse_known_args()[0]), rank)
 
-
     utils.set_seed(args['seed'])
 
-    my_experiment = experiment(args['name'], args, "../results/", commit_changes=False, rank=0, seed=1)
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
+    my_experiment = experiment(args['name'], args, "./results/", commit_changes=False, rank=0, seed=1)
 
     logger = logging.getLogger('experiment')
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
     # Using first 963 classes of the omniglot as the meta-training set
     args['classes'] = list(range(963))
 
-    args['traj_classes'] = list(range(int(963/2), 963))
+    args['traj_classes'] = list(range(int(963 / 2), 963))
 
-
-
-    dataset = df.DatasetFactory.get_dataset(args['dataset'], background=True, train=True,path=args["path"], all=True)
+    dataset = df.DatasetFactory.get_dataset(args['dataset'], background=True, train=True, path=args["path"], all=True)
     dataset_test = df.DatasetFactory.get_dataset(args['dataset'], background=True, train=False, path=args["path"], all=True)
 
     # Iterators used for evaluation
@@ -63,7 +56,6 @@ def main():
 
     maml = MetaLearingClassification(args, config).to(device)
 
-    
     for step in range(args['steps']):
 
         t1 = np.random.choice(args['traj_classes'], args['tasks'], replace=False)
@@ -82,12 +74,12 @@ def main():
         accs, loss = maml(x_spt, y_spt, x_qry, y_qry)
 
         # Evaluation during training for sanity checks
-        if step % 40 == 5:
-            writer.add_scalar('/metatrain/train/accuracy', accs[-1], step)
-            logger.info('step: %d \t training acc %s', step, str(accs))
-        if step % 300 == 3:
-            utils.log_accuracy(maml, my_experiment, iterator_test, device, writer, step)
-            utils.log_accuracy(maml, my_experiment, iterator_train, device, writer, step)
+        if step % 200 == 5:
+            wandb.log({'/metatrain/train/accuracy': accs[-1]}, step=step)
+            logger.info('step: %d \t training acc %s', step, str(accs[-1]))
+        if step % 1500 == 3:
+            utils.log_accuracy(maml, my_experiment, iterator_test, device, step)
+            utils.log_accuracy(maml, my_experiment, iterator_train, device, step)
 
 
 if __name__ == '__main__':

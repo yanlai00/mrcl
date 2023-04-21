@@ -26,7 +26,7 @@ def main():
 
     utils.set_seed(args['seed'])
 
-    my_experiment = experiment(args['name'], args, "../results/", commit_changes=False, rank=0, seed=1)
+    my_experiment = experiment(args['name'], args, "./results/", commit_changes=False, rank=0, seed=1)
 
     gpu_to_use = rank % args["gpus"]
     if torch.cuda.is_available():

@@ -1,7 +1,7 @@
 *.xml
 .idea
 .DS_Store
-utils/__pycache__
-datasets/__pycache__
-model/__pycache__
-experiment/__pycache__
+mrcl_trained_models/
+**/__pycache__
+results/
+wandb/

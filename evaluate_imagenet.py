@@ -5,7 +5,7 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+import wandb
 from torch.nn import functional as F
 
 import datasets.datasetfactory as df
@@ -24,9 +24,9 @@ def main(args):
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
-    my_experiment = experiment(args.name, args, "../results/", args.commit)
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
+    my_experiment = experiment(args.name, args, "./results/", args.commit)
 
     logger = logging.getLogger('experiment')
     logger.setLevel(logging.INFO)
@@ -198,7 +198,7 @@ def main(args):
                 lr_list = [max_lr]
                 results_mem_size[mem_size] = (max_acc, max_lr)
                 logger.info("Final Max Result = %s", str(max_acc))
-                writer.add_scalar('/finetune/best_' + str(aoo), max_acc, tot_class)
+                wandb.log({f'/finetune/best_{aoo}': max_acc}, step=tot_class)
             final_results_all.append((tot_class, results_mem_size))
             print("A=  ", results_mem_size)
             logger.info("Final results = %s", str(results_mem_size))
@@ -206,8 +206,6 @@ def main(args):
             my_experiment.results["Final Results"] = final_results_all
             my_experiment.store_json()
             print("FINAL RESULTS = ", final_results_all)
-    writer.close()
-
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()

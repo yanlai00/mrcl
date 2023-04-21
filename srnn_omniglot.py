@@ -26,7 +26,7 @@ def main(args):
 
     np.random.seed(args.seed)
 
-    my_experiment = experiment(args.name, args, "../results/")
+    my_experiment = experiment(args.name, args, "./results/")
 
     dataset = df.DatasetFactory.get_dataset(args.dataset)
 

@@ -24,7 +24,7 @@ To learn representations for omnigtot run the following command:
 python oml_omniglot.py --update_lr 0.03 --meta_lr 1e-4 --name OML_Omniglot/ --tasks 3 --update_step 5 --steps 700000 --rank 0
 ```
 
-This will store the learned model at ../results/DDMonthYYYY/Omniglot/0.0001/oml_omniglot)
+This will store the learned model at ./results/DDMonthYYYY/Omniglot/0.0001/oml_omniglot
 
 
 ### Evaluating Representations learned by OML
@@ -37,7 +37,7 @@ python evaluate_omniglot.py --model-path path_to_model/learner.model --name Omni
 
 Exclude the --test argument to get result on training trajectories (Used to measure forgetting). 
 
-Results will be stored in a json file in "../results/DDMonthYYYY/Omniglot/eval/Omni_test_traj_0"
+Results will be stored in a json file in "./results/DDMonthYYYY/Omniglot/eval/Omni_test_traj_0"
 
 ### Visualizing Representations
 

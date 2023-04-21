@@ -1,9 +1,4 @@
 import logging
-
-logger = logging.getLogger("experiment")
-
-import logging
-
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -16,7 +11,7 @@ class Learner(nn.Module):
     """
     """
 
-    def __init__(self, learner_configuration, backbone_configuration=None):
+    def __init__(self, learner_configuration):
         """
 
         :param learner_configuration: network config file, type:list of (string, list)
@@ -26,12 +21,8 @@ class Learner(nn.Module):
         super(Learner, self).__init__()
 
         self.config = learner_configuration
-        self.backbone_config = backbone_configuration
-
-        self.vars = nn.ParameterList()
 
         self.vars = self.parse_config(self.config, nn.ParameterList())
-        self.context_backbone = None
 
     def parse_config(self, config, vars_list):
 
@@ -64,7 +55,6 @@ class Learner(nn.Module):
         self.rotate_inverse = nn.Parameter(torch.inverse(self.rotate))
         # print(self.rotate.shape)
         # print(self.rotate_inverse.shape)
-        # quit()
         logger.info("Inverse computed")
 
 
@@ -80,10 +70,9 @@ class Learner(nn.Module):
                 else:
                     torch.nn.init.zeros_(var)
 
-    def forward(self, x, vars=None, config=None, sparsity_log=False, rep=False):
+    def forward(self, x, vars=None, config=None, rep=False):
         """
         """
-
         x = x.float()
         if vars is None:
             vars = self.vars

@@ -26,7 +26,7 @@ class Parser(configargparse.ArgParser):
         self.add('--reset', action="store_true")
         self.add('--test', action="store_true")
         self.add("--iid", action="store_true")
-        self.add("--runs", type=int, default=50)
+        self.add("--runs", type=int, default=20)
         self.add('--model-path', nargs='+', type=str, help='epoch number', default=None)
 
         

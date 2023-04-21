@@ -27,7 +27,7 @@ def main(args):
 
     np.random.seed(args.seed)
 
-    my_experiment = experiment(args.name, args, "../results/")
+    my_experiment = experiment(args.name, args, "./results/")
 
     args.classes = list(range(64))
 

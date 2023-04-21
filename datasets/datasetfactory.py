@@ -1,7 +1,5 @@
 import torchvision.transforms as transforms
-
-import datasets.omniglot as om
-
+from datasets.omniglot import Omniglot
 
 class DatasetFactory:
     def __init__(self):
@@ -15,12 +13,11 @@ class DatasetFactory:
                 [transforms.Resize((84, 84)),
                  transforms.ToTensor()])
             if path is None:
-                return om.Omniglot("../data/omni", background=background, download=True, train=train,
+                return Omniglot("../data/omni", background=background, download=True, train=train,
                                    transform=train_transform, all=all)
             else:
-                return om.Omniglot(path, background=background, download=True, train=train,
+                return Omniglot(path, background=background, download=True, train=train,
                                    transform=train_transform, all=all)
-
 
         else:
             print("Unsupported Dataset")

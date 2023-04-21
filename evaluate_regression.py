@@ -5,7 +5,7 @@ import logging
 import numpy as np
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+import wandb
 from torch import optim
 from torch.nn import functional as F
 
@@ -66,9 +66,9 @@ def main(args):
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
-    my_experiment = experiment(args.name, args, "../results/", commit_changes=args.commit)
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
+    my_experiment = experiment(args.name, args, "./results/", commit_changes=args.commit)
     print(args)
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
     # Initalize tasks; we sample 1000 tasks for evaluation
     tasks = list(range(1000))

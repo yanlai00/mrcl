@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 import torch
-from tensorboardX import SummaryWriter
+import wandb
 
 import datasets.datasetfactory as df
 import datasets.task_sampler as ts
@@ -12,16 +12,13 @@ import utils.utils as utils
 from experiment.experiment import experiment
 from model.meta_learner import MetaLearingClassification
 
-logger = logging.getLogger('experiment')
-
-
 def main(args):
     utils.set_seed(args.seed)
 
-    my_experiment = experiment(args.name, args, "../results/", commit_changes=args.commit)
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
+    my_experiment = experiment(args.name, args, "./results/", commit_changes=args.commit)
 
     logger = logging.getLogger('experiment')
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
     # Using first 963 classes of the omniglot as the meta-training set
     args.classes = list(range(963))
@@ -66,7 +63,7 @@ def main(args):
         #
         # Evaluation during training for sanity checks
         if step % 20 == 0:
-            writer.add_scalar('/metatrain/train/accuracy', accs[-1], step)
+            wandb.log({'/metatrain/train/accuracy': accs[-1]}, step=step)
             logger.info('step: %d \t training acc %s', step, str(accs))
             logger.info("Loss = %s", str(loss[-1].item()))
         if step % 600 == 599:
@@ -92,7 +89,7 @@ def main(args):
                 else:
                     accs_avg += accs
             logger.info("Loss = %s", str(loss[-1].item()))
-            writer.add_scalar('/metatest/train/accuracy', accs_avg[-1]/40, step)
+            wandb.log({'/metatest/train/accuracy': accs_avg[-1]/40}, step=step)
             logger.info('TEST: step: %d \t testing acc %s', step, str(accs_avg/40))
 
 #

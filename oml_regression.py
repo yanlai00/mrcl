@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import torch
 from torch.nn import functional as F
-from torch.utils.tensorboard import SummaryWriter
+import wandb
 
 import configs.regression.reg_parser as reg_parser
 import datasets.task_sampler as ts
@@ -11,9 +11,6 @@ import model.modelfactory as mf
 from experiment.experiment import experiment
 from model.meta_learner import MetaLearnerRegression
 from utils import utils
-
-logger = logging.getLogger('experiment')
-
 
 def main():
     p = reg_parser.Parser()
@@ -26,15 +23,15 @@ def main():
 
     utils.set_seed(args["seed"])
 
-    my_experiment = experiment(args["name"], args, "../results/", commit_changes=False,
+    my_experiment = experiment(args["name"], args, "./results/", commit_changes=False,
                                rank=int(rank / total_seeds),
                                seed=total_seeds)
 
     my_experiment.results["all_args"] = all_args
 
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
 
     logger = logging.getLogger('experiment')
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
     print("Selected args", args)
 
@@ -44,9 +41,7 @@ def main():
 
     model_config = mf.ModelFactory.get_model(args["model"], "Sin", input_dimension=args["capacity"] + 1,
                                              output_dimension=1,
-                                             width=args["width"])
-
-    context_backbone_config = None
+                                             hidden_size=args["width"])
 
     gpu_to_use = rank % args["gpus"]
     if torch.cuda.is_available():
@@ -55,7 +50,7 @@ def main():
     else:
         device = torch.device('cpu')
 
-    metalearner = MetaLearnerRegression(args, model_config, context_backbone_config).to(device)
+    metalearner = MetaLearnerRegression(args, model_config).to(device)
 
     tmp = filter(lambda x: x.requires_grad, metalearner.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -100,9 +95,8 @@ def main():
 
         running_meta_loss = running_meta_loss * 0.97 + 0.03 * meta_loss[-1].detach().cpu()
         running_meta_loss_fixed = running_meta_loss / (1 - (0.97 ** (meta_steps_counter)))
-        writer.add_scalar('/metatrain/train/accuracy', meta_loss[-1].detach().cpu(), meta_steps_counter)
-        writer.add_scalar('/metatrain/train/runningaccuracy', running_meta_loss_fixed,
-                          meta_steps_counter)
+        wandb.log({'/metatrain/train/accuracy', meta_loss[-1].detach().cpu()}, step=meta_steps_counter)
+        wandb.log({'/metatrain/train/runningaccuracy': running_meta_loss_fixed}, step=meta_steps_counter)
 
         if step % LOG_INTERVAL == 0:
             if running_meta_loss > 0:
@@ -137,7 +131,7 @@ def main():
 
                 if step % LOG_INTERVAL == 0:
                     logger.info("Running adaptation loss = %f", adaptation_loss_fixed)
-                writer.add_scalar('/learn/test/adaptation_loss', current_adaptation_loss, step)
+                wandb.log({'/learn/test/adaptation_loss': current_adaptation_loss}, step=step)
 
         if (step + 1) % (LOG_INTERVAL * 500) == 0:
             if not args["no_save"]:

@@ -21,7 +21,7 @@ def main(args):
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    # my_experiment = experiment(args.name, args, "../results/", args.commit)
+    # my_experiment = experiment(args.name, args, "./results/", args.commit)
 
     logger = logging.getLogger('experiment')
     logger.setLevel(logging.INFO)

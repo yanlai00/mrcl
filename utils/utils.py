@@ -9,6 +9,7 @@ logger = logging.getLogger('experiment')
 from torch.nn import functional as F
 import numpy as np
 import copy
+import wandb
 
 transition = namedtuple('transition', 'state, next_state, action, reward, is_terminal')
 import torch
@@ -40,7 +41,7 @@ def freeze_layers(layers_to_freeze, maml):
     for a in list_of_names:
         logger.info("TLN layer = %s", a[0])
 
-def log_accuracy(maml, my_experiment, iterator_test, device, writer, step):
+def log_accuracy(maml, my_experiment, iterator_test, device, step):
     correct = 0
     torch.save(maml.net, my_experiment.path + "learner.model")
     for img, target in iterator_test:
@@ -50,8 +51,28 @@ def log_accuracy(maml, my_experiment, iterator_test, device, writer, step):
             logits_q = maml.net(img, vars=None)
             pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
             correct += torch.eq(pred_q, target).sum().item() / len(img)
-    writer.add_scalar('/metatrain/test/classifier/accuracy', correct / len(iterator_test), step)
+    wandb.log({'/metatrain/test/classifier/accuracy': correct / len(iterator_test)}, step=step)
     logger.info("Test Accuracy = %s", str(correct / len(iterator_test)))
+
+def val_memory_oml(maml, log_path, test_loader, device, step):
+    correct = 0
+    torch.save(maml.net, log_path + "learner.model")
+    for img, target in test_loader:
+        with torch.no_grad():
+            img = img.to(device)
+            target = target.to(device)
+
+            batch_size = img.shape[0]
+            img_flatten = img.view(batch_size, -1)
+            one_hot_label = F.one_hot(target, num_classes=1000)
+            concat_img_label = torch.cat((img_flatten, one_hot_label), dim=1)
+
+            logits_q = maml.net(concat_img_label)[:, 1024:]
+            pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
+            correct += torch.eq(pred_q, target).sum().item() / len(img)
+
+    wandb.log({'/metatrain/test/classifier/accuracy': correct / len(test_loader)}, step=step)
+    logger.info("Test Accuracy = %s", str(correct / len(test_loader)))
 
 
 class replay_buffer:

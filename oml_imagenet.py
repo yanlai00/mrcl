@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 import torch
-from tensorboardX import SummaryWriter
+import wandb
 
 import datasets.datasetfactory as df
 import datasets.task_sampler as ts
@@ -13,16 +13,13 @@ from experiment.experiment import experiment
 from model.meta_learner import MetaLearingClassification
 import datasets.miniimagenet as imgnet
 
-logger = logging.getLogger('experiment')
-
-
 def main(args):
     utils.set_seed(args.seed)
 
-    my_experiment = experiment(args.name, args, "../results/", commit_changes=args.commit)
-    writer = SummaryWriter(my_experiment.path + "tensorboard")
+    my_experiment = experiment(args.name, args, "./results/", commit_changes=args.commit)
 
     logger = logging.getLogger('experiment')
+    wandb.init(project="meta-cl", entity="yanlaiy", config=args)
 
     # Using first 963 classes of the omniglot as the meta-training set
     args.classes = list(range(64))
@@ -72,11 +69,11 @@ def main(args):
 
         # Evaluation during training for sanity checks
         if step % 40 == 39:
-            writer.add_scalar('/metatrain/train/accuracy', accs[-1], step)
+            wandb.log({'/metatrain/train/accuracy': accs[-1]}, step=step)
             logger.info('step: %d \t training acc %s', step, str(accs))
         if step % 300 == 299:
-            utils.log_accuracy(maml, my_experiment, iterator_test, device, writer, step)
-            utils.log_accuracy(maml, my_experiment, iterator_train, device, writer, step)
+            utils.log_accuracy(maml, my_experiment, iterator_test, device, step)
+            utils.log_accuracy(maml, my_experiment, iterator_train, device, step)
 
 
 #

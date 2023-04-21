@@ -13,7 +13,7 @@ logger = logging.getLogger("experiment")
 
 class MetaLearnerRegression(nn.Module):
 
-    def __init__(self, args, config, backbone_config=None):
+    def __init__(self, args, config):
         """
         #
         :param args:
@@ -27,7 +27,7 @@ class MetaLearnerRegression(nn.Module):
 
         self.sigmoid = not args["no_sigmoid"]
 
-        self.load_model(args, config, backbone_config)
+        self.load_model(args, config)
         self.optimizers = []
 
         forward_meta_weights = self.net.get_forward_meta_parameters()
@@ -132,7 +132,7 @@ class MetaLearnerRegression(nn.Module):
         loss = F.mse_loss(prediction, y_traj[0, :, 0].unsqueeze(1))
 
         grad = self.clip_grad(torch.autograd.grad(loss, self.net.get_adaptation_parameters(),
-                                                  create_graph=True))
+                                                  create_graph=False))
 
         list_of_context = None
         if self.context_plasticity:
@@ -150,8 +150,7 @@ class MetaLearnerRegression(nn.Module):
 
             loss = F.mse_loss(prediction, y_traj[k, :, 0].unsqueeze(1))
 
-            grad = self.clip_grad(torch.autograd.grad(loss, self.net.get_adaptation_parameters(fast_weights),
-                                                      create_graph=True))
+            grad = self.clip_grad(torch.autograd.grad(loss, fast_weights, create_graph=False))
 
             list_of_context = None
             if self.context_plasticity:
@@ -183,7 +182,6 @@ class MetaLearingClassification(nn.Module):
 
         self.update_lr = args['update_lr']
         self.meta_lr = args['meta_lr']
-        self.update_step = args['update_step']
 
         self.net = Learner.Learner(config)
         self.optimizer = optim.Adam(self.net.parameters(), lr=self.meta_lr)
@@ -255,56 +253,6 @@ class MetaLearingClassification(nn.Module):
         x_rand = torch.cat([x_rand, x_rand_temp], 1)
         y_rand = torch.cat([y_rand, y_rand_temp], 1)
 
-        # print(y_traj)
-        # print(y_rand)
-        #
-        # quit()
-        return x_traj, y_traj, x_rand, y_rand
-
-    def sample_training_data_paper(self, iterators, it2, steps=2, reset=True):
-
-        # Sample data for inner and meta updates
-
-        x_traj, y_traj, x_rand, y_rand, x_rand_temp, y_rand_temp = [], [], [], [], [], []
-
-        assert(steps < 16)
-        counter = 0
-        #
-        x_rand_temp = []
-        y_rand_temp = []
-
-        class_counter = 0
-        for it1 in iterators:
-            # assert (len(iterators) == 1)
-            steps_inner = 0
-            rand_counter = 0
-            for img, data in it1:
-                class_to_reset = data[0].item()
-                if reset:
-                    # Resetting weights corresponding to classes in the inner updates; this prevents
-                    # the learner from memorizing the data (which would kill the gradients due to inner updates)
-                    self.reset_classifer(class_to_reset)
-
-                counter += 1
-                if steps_inner < steps:
-                    x_traj.append(img)
-                    y_traj.append(data)
-                    steps_inner += 1
-
-                else:
-                    x_rand_temp.append(img)
-                    y_rand_temp.append(data)
-                    rand_counter += 1
-                    if rand_counter == steps:
-                        break
-            class_counter += 1
-
-        y_rand_temp = torch.cat(y_rand_temp).unsqueeze(0)
-        x_rand_temp = torch.cat(x_rand_temp).unsqueeze(0)
-
-        x_traj, y_traj, x_rand, y_rand = torch.stack(x_traj), torch.stack(y_traj), x_rand_temp, y_rand_temp
-
-
         return x_traj, y_traj, x_rand, y_rand
 
     def inner_update(self, x, fast_weights, y):
@@ -315,8 +263,7 @@ class MetaLearingClassification(nn.Module):
         if fast_weights is None:
             fast_weights = self.net.parameters()
 
-        grad = torch.autograd.grad(loss, self.net.get_adaptation_parameters(fast_weights),
-                                   create_graph=True)
+        grad = torch.autograd.grad(loss, self.net.get_adaptation_parameters(fast_weights), create_graph=False)
 
         new_weights = []
         for p in fast_weights:

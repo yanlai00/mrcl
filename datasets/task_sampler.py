@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 import torch
+import torch.utils.data
 
 logger = logging.getLogger("experiment")
 
@@ -294,7 +295,6 @@ class SampleOmni:
                                                      batch_size=1,
                                                      shuffle=True, num_workers=1)
         self.iterators[task] = train_iterator
-        print("Task %d has been added to the list" % task)
         return train_iterator
 
     def get(self, tasks, train):
